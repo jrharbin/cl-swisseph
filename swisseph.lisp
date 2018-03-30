@@ -1,5 +1,7 @@
-(defun load-swisseph ()
- (cffi:load-foreign-library "~/trading/lisp/libswe.so"))
+(defun load-swisseph (&key (so-filename "/usr/local/lib/libswe.so"))
+  "Loads the Swiss Ephemeris dynamic library, from a default location in
+  /usr/local/lib if no arguments given"
+ (cffi:load-foreign-library so-filename))
 
 (cffi:defcfun ("swe_set_ephe_path" set-ephe-path) :void (path :string))
 (cffi:defcfun ("swe_set_jpl_file" set-jpl-file) :void (fname :string))
@@ -27,7 +29,8 @@
   (speed-dist 0d0 :type double-float))
 
 (defmethod translate-from-foreign (ptr (type c-results))
-  (cffi:with-foreign-slots ((long lat dist speed-long speed-lat speed-dist) ptr (:struct results))
+  (cffi:with-foreign-slots ((long lat dist speed-long speed-lat speed-dist)
+			    ptr (:struct results))
     (make-results :long long :lat lat :dist dist
 		  :speed-long speed-long :speed-lat speed-lat
 		  :speed-dist speed-dist)))
@@ -39,22 +42,29 @@
 		  :speed-dist speed-dist)))
 
 (defmethod translate-into-foreign-memory (value (type c-results) ptr)
-    (cffi:with-foreign-slots ((long lat dist speed-long speed-lat speed-dist) ptr (:struct results))
-      (setf long (results-long value)
-	    lat (results-lat value)
-	    dist (results-dist value)
-	    speed-long (results-speed-long value)
-	    speed-lat (results-speed-lat value)
-	    speed-dist (results-speed-dist value))))
+  (cffi:with-foreign-slots
+   ((long lat dist speed-long speed-lat speed-dist) ptr (:struct results))
+   (setf long (results-long value)
+	 lat (results-lat value)
+	 dist (results-dist value)
+	 speed-long (results-speed-long value)
+	 speed-lat (results-speed-lat value)
+	 speed-dist (results-speed-dist value))))
 
 (cffi:defcfun ("swe_calc_ut" %calc-ut) :int
-  (tjd_ut :double)
-  (ipl :int)
-  (iflag :int)
-  (xx :pointer (:struct :results))
-  (serr :string))
+	      (tjd_ut :double)
+	      (ipl :int)
+	      (iflag :int)
+	      (xx :pointer (:struct :results))
+	      (serr :string))
 
-(cffi:defcfun ("swe_calc" %calc) :int (tjd_ut :double) (ipl :int) (iflag :int) (xx :pointer :double) (serr :string))
+(cffi:defcfun ("swe_calc" %calc)
+	      :int
+	      (tjd_ut :double)
+	      (ipl :int)
+	      (iflag :int)
+	      (xx :pointer :double)
+	      (serr :string))
 
 ;; Also need to do
 ;; swe_fixstar2_ut(), swe_fixstar2(), swe_fixstar_ut(),  swe_fixstar()
@@ -70,11 +80,11 @@
      (let* ((xx (translate-into-foreign-memory ))
 	    (serr (make-strmax)))
        (unwind-protect
-	    (let ((rescode (,wrapped tjd-ut planet iflag xx serr)))
-	      (if (< rescode 0)
-		  (error (format nil "Swisseph reported an error, description is: ~S" serr))
-		  (translate-from-foreign xx))))
-       (cffi:foreign-free xx)))))
+	   (let ((rescode (,wrapped tjd-ut planet iflag xx serr)))
+	     (if (< rescode 0)
+		 (error (format nil "Swisseph reported an error, description is: ~S" serr))
+	       (translate-from-foreign xx))))
+       (cffi:foreign-free xx))))
 
 (build-single calc %calc)
 (build-single calc-ut %calc-ut)
