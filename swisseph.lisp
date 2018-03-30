@@ -1,5 +1,5 @@
 (defun load-swisseph ()
-  (cffi:load-foreign-library "~/trading/lisp/libswe.so"))
+ (cffi:load-foreign-library "~/trading/lisp/libswe.so"))
 
 (cffi:defcfun ("swe_set_ephe_path" set-ephe-path) :void (path :string))
 (cffi:defcfun ("swe_set_jpl_file" set-jpl-file) :void (fname :string))
